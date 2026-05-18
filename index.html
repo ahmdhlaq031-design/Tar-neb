@@ -7,7 +7,6 @@
     <title>طرنيب | لعبة الورق العربية</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
-        /* ==================== الأساسيات ==================== */
         * {
             margin: 0;
             padding: 0;
@@ -22,7 +21,6 @@
             min-height: 100vh;
         }
         
-        /* ==================== الصفحات ==================== */
         .page {
             display: none;
             max-width: 560px;
@@ -37,17 +35,10 @@
         }
         
         @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         
-        /* ==================== بطاقات الغرف ==================== */
         .room-card {
             background: rgba(18, 18, 35, 0.85);
             backdrop-filter: blur(20px);
@@ -67,7 +58,6 @@
             transform: translateX(-5px);
         }
         
-        /* ==================== الأزرار العامة ==================== */
         button {
             background: linear-gradient(135deg, #8b5cf6, #6d28d9);
             border: none;
@@ -91,7 +81,6 @@
             margin-bottom: 15px;
         }
         
-        /* ==================== اللاعبين ==================== */
         .players-container {
             display: flex;
             flex-wrap: wrap;
@@ -115,7 +104,6 @@
             border-color: #8b5cf6;
         }
         
-        /* ==================== المحادثة ==================== */
         .chat-box {
             background: rgba(10,10,24,0.78);
             border: 1px solid rgba(255,255,255,0.08);
@@ -151,7 +139,6 @@
             max-width: 100%;
         }
         
-        /* ==================== الكروت ==================== */
         .card {
             background: linear-gradient(145deg, #1e1e2e, #161622);
             border-radius: 12px;
@@ -184,7 +171,6 @@
             cursor: not-allowed;
         }
         
-        /* ==================== أزرار الفرق ==================== */
         .team-btn {
             background: #1e1e2e;
             border: 2px solid #334155;
@@ -199,15 +185,16 @@
             background: #2d2d3e;
         }
         
-        /* ==================== أزرار الطلب ==================== */
         .bid-btn {
             background: #2d2d3e;
-            border: 1px solid #334155;
+            border: 1px solid #d4af37;
             padding: 12px 18px;
-            margin: 5px;
+            margin: 6px;
             font-size: 1rem;
-            min-width: 55px;
+            min-width: 60px;
             border-radius: 12px;
+            font-weight: bold;
+            color: #f1f5f9;
         }
         
         .bid-btn:hover {
@@ -216,7 +203,6 @@
             transform: scale(1.05);
         }
         
-        /* ==================== أزرار الطرنيب ==================== */
         .trump-btn {
             font-size: 2rem;
             padding: 15px 25px;
@@ -231,7 +217,6 @@
             transform: scale(1.05);
         }
         
-        /* ==================== حالة الطلبات ==================== */
         .bids-status {
             background: #1e1e2e;
             border-radius: 16px;
@@ -251,7 +236,6 @@
             border: 1px solid #d4af37;
         }
         
-        /* ==================== النوافذ المنبثقة ==================== */
         .modal {
             position: fixed;
             inset: 0;
@@ -276,34 +260,23 @@
             border: 1px solid #334155;
         }
         
-        /* ==================== استجابة للشاشات الصغيرة ==================== */
         @media (max-width: 480px) {
-            .page {
-                padding: 12px;
-            }
-            .card {
-                min-width: 45px;
-                min-height: 65px;
-                font-size: 1rem;
-            }
-            .bid-btn {
-                padding: 8px 12px;
-                font-size: 0.9rem;
-                min-width: 50px;
-            }
+            .page { padding: 12px; }
+            .card { min-width: 45px; min-height: 65px; font-size: 1rem; }
+            .bid-btn { padding: 8px 12px; font-size: 0.9rem; min-width: 50px; }
         }
     </style>
 </head>
 <body>
 
-    <!-- ==================== صفحة الغرف (تظهر أول شي) ==================== -->
+    <!-- صفحة الغرف -->
     <div class="page active" id="roomsPage">
         <h2 style="text-align:center;">♠️ غرف الطرنيب</h2>
         <div id="roomsList" style="margin: 15px 0;"></div>
         <button id="createRoomBtn" style="width:100%;">+ إنشاء غرفة جديدة</button>
     </div>
 
-    <!-- ==================== صفحة اللوبي ==================== -->
+    <!-- صفحة اللوبي -->
     <div class="page" id="lobbyPage">
         <button class="back-btn" id="lobbyBackBtn">◀ رجوع للغرف</button>
         <h2 id="lobbyRoomName">الغرفة</h2>
@@ -316,7 +289,7 @@
         <div id="gameActions" style="margin-top:15px;"></div>
     </div>
 
-    <!-- ==================== صفحة اختيار الفريق ==================== -->
+    <!-- صفحة اختيار الفريق -->
     <div class="page" id="teamSelectPage">
         <button class="back-btn" onclick="leaveRoom()">◀ رجوع</button>
         <h2>♠️ اختيار الفريق</h2>
@@ -327,33 +300,25 @@
         <div id="teamSelectStatus" style="text-align: center; color: #d4af37;"></div>
     </div>
 
-    <!-- ==================== صفحة اختيار الطرنيب (للمضيف فقط) ==================== -->
+    <!-- صفحة اختيار الطرنيب -->
     <div class="page" id="trumpSelectPage">
         <button class="back-btn" onclick="leaveRoom()">◀ رجوع</button>
         <h2>♠️ اختيار الطرنيب</h2>
         <div id="trumpSelectArea" style="text-align: center; margin: 30px 0;"></div>
     </div>
 
-    <!-- ==================== صفحة الطلب (Bidding) ==================== -->
+    <!-- صفحة الطلب -->
     <div class="page" id="biddingPage">
         <button class="back-btn" onclick="leaveRoom()">◀ رجوع</button>
         <h2>♠️ مرحلة الطلب</h2>
         <div id="biddingInfo" style="text-align:center; margin:10px 0; color:#d4af37; font-size:1.1rem;"></div>
-        
-        <!-- عرض كروت اللاعب -->
         <div id="playerHandArea" style="display:flex; flex-wrap:wrap; justify-content:center; gap:5px; margin:15px 0;"></div>
-        
-        <!-- أزرار الطلب (2-14) -->
         <div id="biddingButtonsArea" style="text-align:center; margin:15px 0;"></div>
-        
-        <!-- عرض طلبات اللاعبين -->
         <div id="bidsStatus" class="bids-status"></div>
-        
-        <!-- حالة الطلب -->
         <div id="biddingStatus" style="text-align:center; margin:10px 0; padding:10px; background:#00000030; border-radius:12px;"></div>
     </div>
 
-    <!-- ==================== صفحة اللعب ==================== -->
+    <!-- صفحة اللعب -->
     <div class="page" id="gamePage">
         <button class="back-btn" onclick="leaveRoom()">◀ رجوع</button>
         <h2>♠️ طرنيب</h2>
@@ -373,7 +338,7 @@
         <div id="playerHand" style="display:flex; flex-wrap:wrap; justify-content:center; gap:5px; margin-top:10px;"></div>
     </div>
 
-    <!-- ==================== نماذج الدخول ==================== -->
+    <!-- نوافذ الدخول -->
     <div class="modal" id="passwordModal">
         <div class="modal-content">
             <h3>🔒 غرفة خاصة</h3>
@@ -393,11 +358,9 @@
     </div>
 
     <script type="module">
-        // استيراد Firebase
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getDatabase, ref, set, get, update, onValue, onDisconnect, remove, push } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-        // إعدادات Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyBoKTdre9mwZFKlYAne5-f_mmZgPl1QfT4",
             authDomain: "gggg-d31c1.firebaseapp.com",
@@ -405,11 +368,9 @@
             projectId: "gggg-d31c1",
         };
         
-        // تهيئة Firebase
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // ==================== الحالة العامة ====================
         let state = {
             roomId: null,
             playerId: null,
@@ -424,7 +385,6 @@
         let roomListener = null;
         let gameListener = null;
 
-        // ==================== دوال مساعدة ====================
         function showToast(msg, isError = false) {
             alert((isError ? '❌ ' : '✅ ') + msg);
         }
@@ -452,7 +412,6 @@
             document.getElementById(page + 'Page').classList.add('active');
         }
 
-        // ==================== إدارة الغرف ====================
         async function loadRooms() {
             if (roomsListener) roomsListener();
             roomsListener = onValue(ref(db, 'rooms'), (snap) => {
@@ -603,7 +562,6 @@
         
         document.getElementById('createRoomBtn').onclick = createRoom;
 
-        // ==================== مستمع الغرفة والمحادثة ====================
         function startRoomListener() {
             if (roomListener) roomListener();
             roomListener = onValue(ref(db, 'rooms/' + state.roomId), (snap) => {
@@ -688,7 +646,6 @@
             await update(ref(db, 'rooms/' + state.roomId), { phase: 'team-selecting' });
         }
 
-        // ==================== اختيار الفريق ====================
         function updateTeamUI(room) {
             const players = room.players || {};
             let team1Count = 0;
@@ -733,7 +690,6 @@
             await update(ref(db, 'rooms/' + state.roomId), { phase: 'trump-selecting' });
         };
         
-        // ==================== اختيار الطرنيب ====================
         function updateTrumpUI(room) {
             if (state.isHost) {
                 document.getElementById('trumpSelectArea').innerHTML = `
@@ -750,7 +706,6 @@
             }
         }
         
-        // ==================== إعدادات الكروت ====================
         const SUITS = ['♥️', '♦️', '♣️', '♠️'];
         const RANKS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
         const VALUES = {
@@ -816,7 +771,6 @@
             await update(ref(db, 'rooms/' + state.roomId), { phase: 'bidding', tarneebGame: gameData });
         }
         
-        // ==================== مرحلة الطلب ====================
         function updateBiddingUI(room) {
             const g = room.tarneebGame;
             if (!g) return;
@@ -824,13 +778,18 @@
             const myPlayer = g.players.find(p => p.id === state.playerId);
             if (!myPlayer) return;
             
+            // عرض الطرنيب
             document.getElementById('biddingInfo').innerHTML = `طرنيب: ${g.trump} | اختر طلبك (2-14)`;
             
+            // عرض كروت اللاعب
             document.getElementById('playerHandArea').innerHTML = myPlayer.hand.map(c => {
                 return `<div class="card">${c.rank}${c.suit}</div>`;
             }).join('');
             
-            if (!g.bids[state.playerId]) {
+            // عرض أزرار الطلب (2-14) - الشرط المهم
+            const hasPlayerBid = g.bids[state.playerId];
+            
+            if (!hasPlayerBid) {
                 let btnsHtml = '<div style="display:flex; flex-wrap:wrap; justify-content:center; gap:8px;">';
                 for (let i = 2; i <= 14; i++) {
                     btnsHtml += `<button class="bid-btn" onclick="submitBid(${i})">طلب ${i}</button>`;
@@ -841,6 +800,7 @@
                 document.getElementById('biddingButtonsArea').innerHTML = `<p style="color:#10b981;">✅ طلبت: ${g.bids[state.playerId]}</p>`;
             }
             
+            // عرض طلبات اللاعبين
             let bidsHtml = '<div style="font-weight:bold; margin-bottom:8px;">📋 الطلبات:</div>';
             g.players.forEach(p => {
                 const bid = g.bids[p.id];
@@ -876,12 +836,10 @@
             await update(ref(db, 'rooms/' + state.roomId), { phase: 'playing', tarneebGame: g });
         }
         
-        // ==================== حساب قيمة الكرت ====================
         function getCardValue(card, trump) {
             return card.value + (card.suit === trump ? 100 : 0);
         }
         
-        // ==================== مستمع اللعبة ====================
         function startGameListener() {
             if (gameListener) gameListener();
             
@@ -926,7 +884,6 @@
             });
         }
         
-        // ==================== لعب الكرت ====================
         window.playCard = async function(index) {
             const snap = await get(ref(db, 'rooms/' + state.roomId));
             let g = snap.val().tarneebGame;
@@ -992,7 +949,6 @@
             await update(ref(db, 'rooms/' + state.roomId + '/tarneebGame'), g);
         };
 
-        // ==================== مغادرة الغرفة ====================
         window.leaveRoom = async function() {
             if (state.roomId) {
                 await push(ref(db, 'rooms/' + state.roomId + '/chat'), {
@@ -1022,7 +978,6 @@
         
         document.getElementById('lobbyBackBtn').onclick = leaveRoom;
         
-        // ==================== بدء التشغيل ====================
         loadRooms();
     </script>
 </body>
