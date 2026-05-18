@@ -107,6 +107,16 @@
         }
         .team-btn.selected { border-color: #d4af37; background: #2d2d3e; }
         
+        .bid-btn {
+            background: #2d2d3e;
+            border: 1px solid #334155;
+            padding: 15px 20px;
+            margin: 5px;
+            font-size: 1.2rem;
+            min-width: 60px;
+        }
+        .bid-btn:hover { background: #d4af37; color: #000; border-color: #d4af37; }
+        
         .modal {
             position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px);
             display: none; align-items: center; justify-content: center; z-index: 1000;
@@ -114,20 +124,12 @@
         .modal.active { display: flex; }
         .modal-content { background: #0f0f1a; border-radius: 32px; padding: 24px; width: 90%; max-width: 400px; border: 1px solid #334155; }
         
-        .fab {
-            position: fixed; bottom: 30px; left: 30px;
-            width: 56px; height: 56px; border-radius: 50%;
-            background: linear-gradient(135deg, #8b5cf6, #6d28d9);
-            font-size: 1.8rem;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
-        }
-        
-        @media (max-width: 480px) { .page { padding: 12px; } .card { min-width: 45px; min-height: 65px; font-size: 1rem; } }
+        @media (max-width: 480px) { .page { padding: 12px; } .card { min-width: 45px; min-height: 65px; font-size: 1rem; } .bid-btn { padding: 10px 12px; font-size: 1rem; } }
     </style>
 </head>
 <body>
 
-<!-- ========== صفحة الغرف (تظهر أول شي) ========== -->
+<!-- ========== صفحة الغرف ========== -->
 <div class="page active" id="roomsPage">
     <h2 style="text-align:center;">♠️ غرف الطرنيب</h2>
     <div id="roomsList" style="margin: 15px 0;"></div>
@@ -158,12 +160,22 @@
     <div id="teamSelectStatus" style="text-align: center; color: #d4af37;"></div>
 </div>
 
-<!-- ========== صفحة اختيار الطرنيب ========== -->
+<!-- ========== صفحة اختيار الطرنيب (المضيف) ========== -->
 <div class="page" id="trumpSelectPage">
     <button class="back-btn" onclick="leaveRoom()">◀ رجوع</button>
     <h2>♠️ اختيار الطرنيب</h2>
     <div id="trumpSelectArea" style="text-align: center; margin: 30px 0;"></div>
     <div id="trumpSelectStatus" style="text-align: center; color: #d4af37;"></div>
+</div>
+
+<!-- ========== صفحة الطلب (Bidding) ========== -->
+<div class="page" id="biddingPage">
+    <button class="back-btn" onclick="leaveRoom()">◀ رجوع</button>
+    <h2>♠️ مرحلة الطلب</h2>
+    <div id="biddingInfo" style="text-align:center; margin:10px 0; color:#d4af37;"></div>
+    <div id="playerHandArea" style="display:flex; flex-wrap:wrap; justify-content:center; gap:5px; margin:15px 0;"></div>
+    <div id="biddingArea" style="text-align:center; margin:15px 0;"></div>
+    <div id="biddingStatus" style="text-align:center; margin:10px 0; padding:10px; background:#1e1e2e; border-radius:12px;"></div>
 </div>
 
 <!-- ========== صفحة اللعب ========== -->
@@ -309,6 +321,7 @@
             
             if (room.phase === 'team-selecting') { navigateTo('teamSelect'); updateTeamUI(room); }
             if (room.phase === 'trump-selecting') { navigateTo('trumpSelect'); updateTrumpUI(room); }
+            if (room.phase === 'bidding') { navigateTo('bidding'); updateBiddingUI(room); }
             if (room.phase === 'playing') { navigateTo('game'); startGameListener(); }
         });
     }
@@ -369,7 +382,7 @@
         await update(ref(db, 'rooms/'+state.roomId), { phase: 'trump-selecting' });
     };
     
-    // ========== اختيار الطرنيب ==========
+    // ========== اختيار الطرنيب (المضيف) ==========
     function updateTrumpUI(room) {
         if (state.isHost) {
             document.getElementById('trumpSelectArea').innerHTML = `
@@ -382,16 +395,17 @@
                 </div>
             `;
         } else {
-            document.getElementById('trumpSelectArea').innerHTML = '<p style="margin:30px;">⏳ جاري اختيار الطرنيب...</p>';
+            document.getElementById('trumpSelectArea').innerHTML = '<p style="margin:30px;">⏳ جاري اختيار الطرنيب من قبل المضيف...</p>';
         }
     }
     
     window.selectTrump = async function(suit) {
         if (!state.isHost) return;
-        await startGameWithTrump(suit);
+        await update(ref(db, 'rooms/'+state.roomId), { phase: 'bidding', tarneebTrump: suit });
+        await dealCardsAndStartBidding(suit);
     };
     
-    // ========== بدء اللعبة وتوزيع الكروت ==========
+    // ========== توزيع الكروت ثم مرحلة الطلب ==========
     const SUITS = ['♥️','♦️','♣️','♠️'];
     const RANKS = ['1','2','3','4','5','6','7','8','9','10','J','Q','K'];
     const VALUES = { '1':1,'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'10':10,'J':11,'Q':12,'K':13 };
@@ -403,9 +417,7 @@
         return deck;
     }
     
-    function getCardValue(card, trump) { return card.value + (card.suit === trump ? 100 : 0); }
-    
-    async function startGameWithTrump(trump) {
+    async function dealCardsAndStartBidding(trump) {
         const roomSnap = await get(ref(db, 'rooms/'+state.roomId));
         const room = roomSnap.val();
         const playerIds = Object.keys(room.players);
@@ -414,31 +426,89 @@
         const team2Players = playerIds.filter(id => room.players[id].team === 2);
         const orderedPlayers = [...team1Players, ...team2Players];
         
+        const deck = createDeck();
         const players = orderedPlayers.map(id => ({
             id: id, name: room.players[id].name, team: room.players[id].team, hand: []
         }));
         
-        const deck = createDeck();
         players.forEach(p => { p.hand = deck.splice(0, 13); });
         
         const gameData = {
             players: players,
             trump: trump,
+            bids: {},
             currentTrick: [],
-            currentPlayer: players[0].id,
+            currentPlayer: null,
             tricks: { 1: 0, 2: 0 },
             scores: { 1: 0, 2: 0 },
             round: 1
         };
         
-        await update(ref(db, 'rooms/'+state.roomId), { phase: 'playing', tarneebGame: gameData });
+        await update(ref(db, 'rooms/'+state.roomId), { tarneebGame: gameData });
     }
+    
+    function updateBiddingUI(room) {
+        const game = room.tarneebGame;
+        if (!game) return;
+        
+        const myPlayer = game.players.find(p => p.id === state.playerId);
+        if (!myPlayer) return;
+        
+        // عرض كروت اللاعب
+        document.getElementById('playerHandArea').innerHTML = myPlayer.hand.map(c => `<div class="card">${c.rank}${c.suit}</div>`).join('');
+        document.getElementById('biddingInfo').innerHTML = `طرنيب: ${game.trump} | اختر طلبك`;
+        
+        const myBid = game.bids[state.playerId];
+        const allBids = Object.values(game.bids);
+        const allBidCount = Object.keys(game.bids).length;
+        
+        if (!myBid) {
+            let bidsHtml = '<div style="display:flex; flex-wrap:wrap; justify-content:center; gap:8px;">';
+            for (let i = 2; i <= 14; i++) {
+                bidsHtml += `<button class="bid-btn" onclick="submitBid(${i})">${i}</button>`;
+            }
+            bidsHtml += '</div>';
+            document.getElementById('biddingArea').innerHTML = bidsHtml;
+        } else {
+            document.getElementById('biddingArea').innerHTML = `<p>✅ طلبت: ${myBid}</p>`;
+        }
+        
+        document.getElementById('biddingStatus').innerHTML = `الطلبات: ${allBidCount}/4 لاعبين طلبوا`;
+        
+        if (allBidCount === 4) {
+            const totalBids = allBids.reduce((a,b) => a + b, 0);
+            if (totalBids >= 12) {
+                document.getElementById('biddingStatus').innerHTML = `✅ مجموع الطلبات: ${totalBids} → بدء اللعب`;
+                startPlayingPhase();
+            } else {
+                document.getElementById('biddingStatus').innerHTML = `⚠️ مجموع الطلبات: ${totalBids} (أقل من 12) → بدء اللعب بدون طرنيب`;
+                startPlayingPhase();
+            }
+        }
+    }
+    
+    window.submitBid = async function(bid) {
+        const snap = await get(ref(db, 'rooms/'+state.roomId));
+        let game = snap.val().tarneebGame;
+        if (!game || game.bids[state.playerId]) return;
+        game.bids[state.playerId] = bid;
+        await update(ref(db, 'rooms/'+state.roomId+'/tarneebGame'), game);
+    };
+    
+    async function startPlayingPhase() {
+        const snap = await get(ref(db, 'rooms/'+state.roomId));
+        let game = snap.val().tarneebGame;
+        game.currentPlayer = game.players[0].id;
+        await update(ref(db, 'rooms/'+state.roomId), { phase: 'playing', tarneebGame: game });
+    }
+    
+    function getCardValue(card, trump) { return card.value + (card.suit === trump ? 100 : 0); }
     
     function startGameListener() {
         if (gameListener) gameListener();
         gameListener = onValue(ref(db, 'rooms/'+state.roomId), (snap) => {
             const room = snap.val();
-            if (!room?.tarneebGame) return;
+            if (!room?.tarneebGame || room.phase !== 'playing') return;
             const g = room.tarneebGame;
             const myPlayer = g.players.find(p => p.id === state.playerId);
             if (!myPlayer) return;
@@ -457,7 +527,7 @@
             const hasLeadSuit = leadSuit ? myPlayer.hand.some(c => c.suit === leadSuit) : true;
             
             if (myPlayer.hand.length === 0) {
-                document.getElementById('playerHand').innerHTML = '<div style="text-align:center; padding:20px;">✨ انتهت الكروت، جولة جديدة قريباً...</div>';
+                document.getElementById('playerHand').innerHTML = '<div style="text-align:center; padding:20px;">✨ انتهت الكروت، جولة جديدة...</div>';
                 return;
             }
             
@@ -503,19 +573,21 @@
                 else if (g.tricks[2] > g.tricks[1]) g.scores[2] += 1;
                 g.round++;
                 g.tricks = { 1: 0, 2: 0 };
+                g.bids = {};
                 
                 const deck = createDeck();
                 g.players.forEach(p => { p.hand = deck.splice(0, 13); });
                 g.currentPlayer = g.players[0].id;
                 
-                await push(ref(db, 'rooms/'+state.roomId+'/chat'), { type:'system', text:`🔄 بدأت الجولة ${g.round}`, time:Date.now() });
+                await update(ref(db, 'rooms/'+state.roomId), { phase: 'bidding', tarneebGame: g });
+                await push(ref(db, 'rooms/'+state.roomId+'/chat'), { type:'system', text:`🔄 بدأت جولة جديدة، الطلب من جديد`, time:Date.now() });
+                return;
             }
         }
         
         await update(ref(db, 'rooms/'+state.roomId+'/tarneebGame'), g);
     };
 
-    // ========== المغادرة ==========
     window.leaveRoom = async function() {
         if(state.roomId) { 
             await push(ref(db, 'rooms/'+state.roomId+'/chat'), { type:'system', text:state.playerName+' غادر الغرفة', time:Date.now() });
@@ -529,7 +601,6 @@
     };
     document.getElementById('lobbyBackBtn').onclick = leaveRoom;
     
-    // بدء التشغيل - نحمّل الغرف مباشرة
     loadRooms();
 </script>
 </body>
